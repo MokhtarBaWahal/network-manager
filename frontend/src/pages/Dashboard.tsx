@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Wifi, Zap, AlertCircle } from 'lucide-react';
+import { Activity, Wifi, Zap, AlertCircle, Beaker } from 'lucide-react';
 import { dashboardApi, Device, DashboardStats, Alert } from '../api';
 import StatCard from '../components/StatCard';
 import DeviceCard from '../components/DeviceCard';
@@ -42,8 +42,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={styles.dashboard}>
-      <h1>Dashboard</h1>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1>Dashboard</h1>
+        <Link to="/test-vpn" className={styles.testLink}>
+          <Beaker size={16} />
+          Test VPN Setup
+        </Link>
+      </div>
 
       {error && <div className={styles.error}>{error}</div>}
 

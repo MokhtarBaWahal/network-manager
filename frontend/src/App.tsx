@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import DeviceDetail from './pages/DeviceDetail';
 import AddDevice from './pages/AddDevice';
+import TestVPN from './pages/TestVPN';
 import './App.css';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/devices/:id" element={<DeviceDetail />} />
           <Route path="/add-device" element={<AddDevice />} />
+          <Route path="/test-vpn" element={<TestVPN />} />
         </Route>
       </Routes>
     </BrowserRouter>
