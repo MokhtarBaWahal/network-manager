@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Wifi, Zap, AlertCircle, CheckCircle, Network } from 'lucide-react';
 import styles from './TestVPN.module.css';
 
@@ -9,18 +9,19 @@ interface TestResult {
   timestamp: string;
 }
 
+const DEMO_DATA = {
+  location_name: 'Yemen',
+  local_ip: '192.168.1.1',
+  vpn_ip: '10.0.0.2',
+  router_name: 'MikroTik v6 - Brother',
+};
+
 export default function TestVPN() {
   const [results, setResults] = useState<TestResult[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<'local' | 'yemen'>('local');
   const [testIP, setTestIP] = useState('192.168.1.1');
   const [testPort, setTestPort] = useState('80');
   const [testing, setTesting] = useState(false);
-  const [demoData, setDemoData] = useState({
-    location_name: 'Yemen',
-    local_ip: '192.168.1.1',
-    vpn_ip: '10.0.0.2',
-    router_name: 'MikroTik v6 - Brother',
-  });
 
   const addResult = (name: string, status: 'pending' | 'success' | 'error', message: string) => {
     const newResult: TestResult = {
@@ -39,9 +40,9 @@ export default function TestVPN() {
     try {
       // Test 1: Backend connectivity
       addResult('Backend Connection', 'pending', 'Checking backend...');
-      const healthResponse = await fetch('/api/health' || 'http://localhost:8000/api/health');
+      const healthResponse = await fetch('/api/health');
       if (healthResponse.ok) {
-        addResult('Backend Connection', 'success', `Backend is ${healthResponse.ok ? 'online' : 'offline'}`);
+        addResult('Backend Connection', 'success', `Backend is online`);
       } else {
         addResult('Backend Connection', 'error', `Backend returned ${healthResponse.status}`);
       }
@@ -103,19 +104,19 @@ export default function TestVPN() {
   };
 
   const testDeviceConnection = async () => {
-    addResult('Manual Device Test', 'pending', `Testing ${demoData.router_name}...`);
+    addResult('Manual Device Test', 'pending', `Testing ${DEMO_DATA.router_name}...`);
     setTesting(true);
 
     try {
       // Simulate testing with demo data
-      const connectIP = selectedLocation === 'yemen' ? demoData.vpn_ip : demoData.local_ip;
+      const connectIP = selectedLocation === 'yemen' ? DEMO_DATA.vpn_ip : DEMO_DATA.local_ip;
 
       await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate connection time
 
       addResult(
         'Manual Device Test',
         'success',
-        `Connected to ${demoData.router_name} at ${connectIP} successfully! CPU: 15%, Memory: 62%, Uptime: 45 days`
+        `Connected to ${DEMO_DATA.router_name} at ${connectIP} successfully! CPU: 15%, Memory: 62%, Uptime: 45 days`
       );
     } catch (e) {
       addResult('Manual Device Test', 'error', `Failed to connect: ${e}`);
@@ -150,18 +151,18 @@ export default function TestVPN() {
 
           <div className={styles.demoContent}>
             <div className={styles.demoBox}>
-              <h3>{demoData.location_name} Setup</h3>
+              <h3>{DEMO_DATA.location_name} Setup</h3>
               <div className={styles.demoField}>
                 <span>Router Name:</span>
-                <code>{demoData.router_name}</code>
+                <code>{DEMO_DATA.router_name}</code>
               </div>
               <div className={styles.demoField}>
                 <span>Local IP:</span>
-                <code>{demoData.local_ip}</code>
+                <code>{DEMO_DATA.local_ip}</code>
               </div>
               <div className={styles.demoField}>
                 <span>VPN IP:</span>
-                <code>{demoData.vpn_ip}</code>
+                <code>{DEMO_DATA.vpn_ip}</code>
               </div>
               <button
                 className={styles.testButton}
