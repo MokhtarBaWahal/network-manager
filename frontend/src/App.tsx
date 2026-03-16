@@ -6,6 +6,8 @@ import AddDevice from './pages/AddDevice';
 import TestVPN from './pages/TestVPN';
 import './App.css';
 
+// Vercel deployment trigger
+
 function App() {
   return (
     <BrowserRouter>
