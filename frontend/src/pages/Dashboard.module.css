@@ -1,0 +1,127 @@
+.dashboard {
+  animation: fadeIn 0.3s ease-in;
+}
+
+.dashboard h1 {
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  color: var(--text-primary);
+}
+
+.error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--error);
+  color: var(--error);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 2rem;
+}
+
+.section {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sectionHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.link {
+  color: var(--primary);
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.link:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: var(--primary-light);
+}
+
+.empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-tertiary);
+}
+
+.empty a {
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.deviceGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.deviceLink {
+  display: block;
+  text-decoration: none;
+  transition: transform 0.2s;
+}
+
+.deviceLink:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard h1 {
+    font-size: 1.5rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .deviceGrid {
+    grid-template-columns: 1fr;
+  }
+}
