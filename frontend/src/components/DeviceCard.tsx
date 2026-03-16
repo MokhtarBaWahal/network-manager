@@ -7,10 +7,11 @@ interface DeviceCardProps {
 }
 
 export default function DeviceCard({ device }: DeviceCardProps) {
-  const statusColor = {
+  const statusColor: { [key: string]: string } = {
     online: '#10b981',
     offline: '#ef4444',
     error: '#f59e0b',
+    unknown: '#9ca3af',
   };
 
   return (

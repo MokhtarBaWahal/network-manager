@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Zap, RefreshCw, Power } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Power } from 'lucide-react';
 import { deviceApi, Device, DeviceStatus } from '../api';
 import Loading from '../components/Loading';
 import styles from './DeviceDetail.module.css';

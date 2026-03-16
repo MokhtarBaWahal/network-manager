@@ -39,7 +39,6 @@ export default function AddDevice() {
         device_type: formData.device_type,
         ip_address: formData.ip_address,
         location: formData.location,
-        credentials: credentials || undefined,
       });
 
       navigate('/');

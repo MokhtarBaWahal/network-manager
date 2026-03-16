@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, Wifi, Zap, AlertCircle } from 'lucide-react';
-import { dashboardApi, Device, DashboardStats, Alert, DashboardResponse } from '../api';
+import { dashboardApi, Device, DashboardStats, Alert } from '../api';
 import StatCard from '../components/StatCard';
 import DeviceCard from '../components/DeviceCard';
 import AlertList from '../components/AlertList';
