@@ -37,7 +37,7 @@ class DeviceBase(BaseModel):
 
 class DeviceCreate(DeviceBase):
     """Schema for creating a new device"""
-    pass
+    credentials: Optional[Dict[str, Any]] = None
 
 
 class DeviceUpdate(BaseModel):

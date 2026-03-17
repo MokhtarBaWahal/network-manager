@@ -8,7 +8,7 @@ from typing import List
 import uuid
 
 from app.core.database import get_db
-from app.models.device import Device, DeviceType, DeviceStatus, DeviceMetrics
+from app.models.device import Device, DeviceType, DeviceStatus, DeviceMetrics, DeviceCredentials
 from app.schemas.device import (
     DeviceCreate,
     DeviceResponse,
@@ -75,8 +75,15 @@ async def get_device(device_id: str, db: Session = Depends(get_db)):
 @router.post("/", response_model=DeviceResponse)
 async def create_device(device_data: DeviceCreate, db: Session = Depends(get_db)):
     """Create a new device"""
+    # Clean IP address (remove protocol if present)
+    ip_address = device_data.ip_address.strip()
+    if ip_address.startswith("http://"):
+        ip_address = ip_address[7:]
+    elif ip_address.startswith("https://"):
+        ip_address = ip_address[8:]
+    
     # Check if device already exists
-    existing = db.query(Device).filter(Device.ip_address == device_data.ip_address).first()
+    existing = db.query(Device).filter(Device.ip_address == ip_address).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -88,11 +95,21 @@ async def create_device(device_data: DeviceCreate, db: Session = Depends(get_db)
         id=str(uuid.uuid4()),
         name=device_data.name,
         device_type=device_data.device_type,
-        ip_address=device_data.ip_address,
+        ip_address=ip_address,
         location=device_data.location,
         description=device_data.description,
         status=DeviceStatus.UNKNOWN,
     )
+    
+    # Store credentials if provided
+    if device_data.credentials:
+        cred = DeviceCredentials(
+            id=str(uuid.uuid4()),
+            device_id=device.id,
+            auth_type="credentials" if device_data.device_type == DeviceType.MIKROTIK else "cookie",
+            auth_data=device_data.credentials
+        )
+        device.credentials.append(cred)
     
     db.add(device)
     db.commit()

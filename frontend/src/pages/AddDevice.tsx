@@ -34,11 +34,17 @@ export default function AddDevice() {
       if (formData.password) credentials.password = formData.password;
       if (formData.port) credentials.port = parseInt(formData.port);
 
+      // Clean IP address
+      let ip = formData.ip_address.trim();
+      if (ip.startsWith('http://')) ip = ip.substring(7);
+      if (ip.startsWith('https://')) ip = ip.substring(8);
+
       await deviceApi.create({
         name: formData.name,
         device_type: formData.device_type,
-        ip_address: formData.ip_address,
+        ip_address: ip,
         location: formData.location,
+        credentials: Object.keys(credentials).length > 0 ? credentials : undefined,
       });
 
       navigate('/');

@@ -22,6 +22,15 @@ export interface Device {
   last_online?: string;
 }
 
+export interface DeviceCreateRequest extends Partial<Device> {
+  credentials?: {
+    username?: string;
+    password?: string;
+    port?: number;
+    use_ssl?: boolean;
+  };
+}
+
 export interface DeviceStatus {
   id: string;
   name: string;
@@ -75,7 +84,7 @@ const api = axios.create({
 export const deviceApi = {
   list: () => api.get<Device[]>('/devices/'),
   get: (id: string) => api.get<Device>(`/devices/${id}`),
-  create: (device: Partial<Device>) => api.post<Device>('/devices/', device),
+  create: (device: DeviceCreateRequest) => api.post<Device>('/devices/', device),
   update: (id: string, device: Partial<Device>) => api.put<Device>(`/devices/${id}`, device),
   delete: (id: string) => api.delete(`/devices/${id}`),
   refresh: (id: string) => api.post<DeviceStatus>(`/devices/${id}/refresh`),
