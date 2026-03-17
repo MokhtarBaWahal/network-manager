@@ -98,27 +98,31 @@ export default function DeviceDetail() {
 
       {error && <div className={styles.error}>{error}</div>}
 
-      {device && status && (
+      {device && (
         <>
           <div className={styles.header}>
             <h1>{device.name}</h1>
             <div className={styles.actions}>
-              <button
-                className={`${styles.btn} ${styles.secondary}`}
-                onClick={handleRefresh}
-                disabled={actionLoading}
-              >
-                <RefreshCw size={18} />
-                Refresh
-              </button>
-              <button
-                className={`${styles.btn} ${styles.danger}`}
-                onClick={handleReboot}
-                disabled={actionLoading}
-              >
-                <Power size={18} />
-                Reboot
-              </button>
+              {status && (
+                <>
+                  <button
+                    className={`${styles.btn} ${styles.secondary}`}
+                    onClick={handleRefresh}
+                    disabled={actionLoading}
+                  >
+                    <RefreshCw size={18} />
+                    Refresh
+                  </button>
+                  <button
+                    className={`${styles.btn} ${styles.danger}`}
+                    onClick={handleReboot}
+                    disabled={actionLoading}
+                  >
+                    <Power size={18} />
+                    Reboot
+                  </button>
+                </>
+              )}
               <button
                 className={`${styles.btn} ${styles.delete}`}
                 onClick={handleDelete}
@@ -147,56 +151,60 @@ export default function DeviceDetail() {
                   <span className={styles.label}>Location</span>
                   <span className={styles.value}>{device.location || 'Not specified'}</span>
                 </div>
-                <div className={styles.infoRow}>
-                  <span className={styles.label}>Status</span>
-                  <span className={`${styles.value} ${styles[status.status]}`}>
-                    {status.status}
-                  </span>
-                </div>
+                {status && (
+                  <div className={styles.infoRow}>
+                    <span className={styles.label}>Status</span>
+                    <span className={`${styles.value} ${styles[status.status]}`}>
+                      {status.status}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* System Metrics */}
-            <div className={styles.card}>
-              <h2>System Metrics</h2>
-              <div className={styles.metrics}>
-                {status.cpu_usage !== undefined && (
-                  <div className={styles.metric}>
-                    <div className={styles.metricLabel}>CPU Usage</div>
-                    <div className={styles.metricValue}>{status.cpu_usage?.toFixed(1)}%</div>
-                    <div className={styles.metricBar}>
-                      <div
-                        className={styles.metricFill}
-                        style={{ width: `${status.cpu_usage}%` }}
-                      ></div>
+            {status && (
+              <div className={styles.card}>
+                <h2>System Metrics</h2>
+                <div className={styles.metrics}>
+                  {status.cpu_usage !== undefined && (
+                    <div className={styles.metric}>
+                      <div className={styles.metricLabel}>CPU Usage</div>
+                      <div className={styles.metricValue}>{status.cpu_usage?.toFixed(1)}%</div>
+                      <div className={styles.metricBar}>
+                        <div
+                          className={styles.metricFill}
+                          style={{ width: `${status.cpu_usage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {status.memory_usage !== undefined && (
-                  <div className={styles.metric}>
-                    <div className={styles.metricLabel}>Memory Usage</div>
-                    <div className={styles.metricValue}>{status.memory_usage?.toFixed(1)}%</div>
-                    <div className={styles.metricBar}>
-                      <div
-                        className={styles.metricFill}
-                        style={{ width: `${status.memory_usage}%` }}
-                      ></div>
+                  )}
+                  {status.memory_usage !== undefined && (
+                    <div className={styles.metric}>
+                      <div className={styles.metricLabel}>Memory Usage</div>
+                      <div className={styles.metricValue}>{status.memory_usage?.toFixed(1)}%</div>
+                      <div className={styles.metricBar}>
+                        <div
+                          className={styles.metricFill}
+                          style={{ width: `${status.memory_usage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {status.uptime !== undefined && (
-                  <div className={styles.metric}>
-                    <div className={styles.metricLabel}>Uptime</div>
-                    <div className={styles.metricValue}>
-                      {formatUptime(status.uptime)}
+                  )}
+                  {status.uptime !== undefined && (
+                    <div className={styles.metric}>
+                      <div className={styles.metricLabel}>Uptime</div>
+                      <div className={styles.metricValue}>
+                        {formatUptime(status.uptime)}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Configuration */}
-            {config && (
+            {config && status && (
               <div className={styles.card}>
                 <h2>Configuration</h2>
                 <div className={styles.config}>
