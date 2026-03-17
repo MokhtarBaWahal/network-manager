@@ -84,6 +84,12 @@ class MikroTikDriver(BaseDeviceDriver):
         Automatically detects RouterOS version (v6 or v7+).
         """
         try:
+            logger.info(f"🔄 Connecting to MikroTik {self.device_id}...")
+            logger.info(f"   IP: {self.ip_address}")
+            logger.info(f"   Port: {self.port}")
+            logger.info(f"   Username: {self.username}")
+            logger.info(f"   Use SSL: {self.use_ssl}")
+            
             self.client = httpx.AsyncClient(
                 verify=not self.use_ssl,  # Skip SSL verification for self-signed certs
                 timeout=self.timeout
@@ -91,21 +97,28 @@ class MikroTikDriver(BaseDeviceDriver):
             
             # Test connection by getting system identity (works on both v6 and v7)
             url = f"{self._get_base_url()}/system/identity"
+            logger.info(f"   Testing URL: {url}")
             response = await self.client.get(url, headers=self._get_auth_header())
+            
+            logger.info(f"   Response status: {response.status_code}")
             
             if response.status_code == 200:
                 # Detect version
                 await self._detect_version()
-                logger.info(f"Connected to MikroTik router {self.device_id} at {self.ip_address} (RouterOS {self.os_version})")
+                logger.info(f"✅ Connected to MikroTik router {self.device_id} at {self.ip_address} (RouterOS {self.os_version})")
                 self.connected = True
                 return True
             else:
-                logger.error(f"Failed to authenticate with MikroTik {self.device_id}: {response.status_code}")
+                logger.error(f"❌ Failed to authenticate with MikroTik {self.device_id}: {response.status_code}")
+                logger.error(f"   Response: {response.text}")
                 self.connected = False
                 return False
                 
         except Exception as e:
-            logger.error(f"Failed to connect to MikroTik {self.device_id}: {e}")
+            logger.error(f"❌ Failed to connect to MikroTik {self.device_id}: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"   Traceback: {traceback.format_exc()}")
             self.connected = False
             return False
     
@@ -124,18 +137,35 @@ class MikroTikDriver(BaseDeviceDriver):
     async def get_status(self) -> DeviceInfo:
         """Get MikroTik router status and metrics"""
         try:
+            logger.info(f"📊 Getting status for MikroTik {self.device_id}...")
+            
             if not self.connected:
+                logger.info(f"   Not connected, connecting first...")
                 await self.connect()
+            
+            if not self.connected:
+                logger.error(f"❌ Failed to connect before getting status")
+                return DeviceInfo(
+                    id=self.device_id,
+                    name=f"MikroTik-{self.device_id[-4:]}",
+                    status="error",
+                    ip_address=self.ip_address,
+                    last_updated=datetime.utcnow()
+                )
             
             # Get system resource info
             url = f"{self._get_base_url()}/system/resource"
+            logger.info(f"   Fetching: {url}")
             response = await self.client.get(url, headers=self._get_auth_header())
+            logger.info(f"   Response status: {response.status_code}")
             
             resource_data = response.json()[0] if response.status_code == 200 else {}
             
             # Get system identity
             identity_url = f"{self._get_base_url()}/system/identity"
+            logger.info(f"   Fetching: {identity_url}")
             identity_response = await self.client.get(identity_url, headers=self._get_auth_header())
+            logger.info(f"   Response status: {identity_response.status_code}")
             identity_data = identity_response.json()[0] if identity_response.status_code == 200 else {}
             
             router_name = identity_data.get("name", f"MikroTik-{self.device_id[-4:]}")
@@ -158,10 +188,13 @@ class MikroTikDriver(BaseDeviceDriver):
                 uptime=uptime_seconds,
                 last_updated=datetime.utcnow()
             )
-            logger.info(f"MikroTik {self.device_id} status: CPU={cpu_load}%, Memory={memory_usage:.1f}%")
+            logger.info(f"✅ MikroTik {self.device_id} status: CPU={cpu_load}%, Memory={memory_usage:.1f}%, Uptime={uptime_seconds}s")
             return device_info
         except Exception as e:
-            logger.error(f"Error getting status from MikroTik {self.device_id}: {e}")
+            logger.error(f"❌ Error getting status from MikroTik {self.device_id}: {e}")
+            logger.error(f"   Error type: {type(e).__name__}")
+            import traceback
+            logger.error(f"   Traceback: {traceback.format_exc()}")
             return DeviceInfo(
                 id=self.device_id,
                 name=f"MikroTik-{self.device_id[-4:]}",

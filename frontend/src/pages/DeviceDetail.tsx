@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, Power } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Power, Trash2 } from 'lucide-react';
 import { deviceApi, Device, DeviceStatus } from '../api';
 import Loading from '../components/Loading';
 import styles from './DeviceDetail.module.css';
@@ -68,6 +68,25 @@ export default function DeviceDetail() {
     }
   }
 
+  async function handleDelete() {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${device?.name}"? This action cannot be undone.`
+    );
+    
+    if (!confirmed) return;
+
+    setActionLoading(true);
+    try {
+      await deviceApi.delete(id!);
+      alert('Device deleted successfully');
+      navigate('/');
+    } catch (err) {
+      alert('Failed to delete device');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   if (loading) return <Loading />;
 
   return (
@@ -99,6 +118,14 @@ export default function DeviceDetail() {
               >
                 <Power size={18} />
                 Reboot
+              </button>
+              <button
+                className={`${styles.btn} ${styles.delete}`}
+                onClick={handleDelete}
+                disabled={actionLoading}
+              >
+                <Trash2 size={18} />
+                Delete
               </button>
             </div>
           </div>

@@ -26,26 +26,38 @@ async def main():
         db.close()
         return
     
-    auth_data = device.credentials.auth_data or {}
-    print(f"\n🔑 Stored Credentials:")
-    print(f"   Username: {auth_data.get('username', 'NOT SET')}")
-    print(f"   Password: {'*' * len(auth_data.get('password', '')) if auth_data.get('password') else 'NOT SET'}")
-    print(f"   Port: {auth_data.get('port', 80)}")
-    print(f"   Use SSL: {auth_data.get('use_ssl', False)}")
+    print(f"\n🔑 Stored Credentials ({len(device.credentials)} entries):")
+    for cred in device.credentials:
+        auth_data = cred.auth_data or {}
+        print(f"   Username: {auth_data.get('username', 'NOT SET')}")
+        print(f"   Password: {'*' * len(auth_data.get('password', '')) if auth_data.get('password') else 'NOT SET'}")
+        print(f"   Port: {auth_data.get('port', 80)}")
+        print(f"   Use SSL: {auth_data.get('use_ssl', False)}")
     
     print(f"\n🔄 Testing connection...")
     try:
+        # Get first credential if available
+        if device.credentials and len(device.credentials) > 0:
+            cred = device.credentials[0]
+            auth_data = cred.auth_data or {}
+        else:
+            auth_data = {}
+            
         driver = MikroTikDriver(device.id, device.ip_address, auth_data)
-        await driver.connect()
-        print("✅ Connection successful!")
+        connected = await driver.connect()
         
-        status = await driver.get_status()
-        print(f"\n📊 Device Status:")
-        print(f"   Name: {status.name}")
-        print(f"   Status: {status.status}")
-        print(f"   CPU: {status.cpu_usage}%")
-        print(f"   Memory: {status.memory_usage}%")
-        print(f"   Uptime: {status.uptime}s")
+        if connected:
+            print("✅ Connection successful!")
+            
+            status = await driver.get_status()
+            print(f"\n📊 Device Status:")
+            print(f"   Name: {status.name}")
+            print(f"   Status: {status.status}")
+            print(f"   CPU: {status.cpu_usage}%")
+            print(f"   Memory: {status.memory_usage}%")
+            print(f"   Uptime: {status.uptime}s")
+        else:
+            print("❌ Connection failed (returned False)")
         
         await driver.disconnect()
         

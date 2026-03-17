@@ -33,8 +33,10 @@ def get_device_driver(device: Device) -> BaseDeviceDriver:
     """Get or create device driver instance"""
     if device.id not in device_drivers:
         credentials = {}
-        if device.credentials:
-            credentials = device.credentials.auth_data or {}
+        if device.credentials and len(device.credentials) > 0:
+            # Get the first credential (typically only one per device)
+            cred = device.credentials[0]
+            credentials = cred.auth_data or {}
         
         if device.device_type == DeviceType.STARLINK:
             device_drivers[device.id] = StarlinkDriver(

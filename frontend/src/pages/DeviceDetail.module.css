@@ -79,6 +79,14 @@
   background-color: #dc2626;
 }
 
+.btn.delete {
+  background-color: #ef4444;
+}
+
+.btn.delete:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+
 .error {
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--error);
