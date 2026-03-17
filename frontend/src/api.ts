@@ -89,7 +89,6 @@ export const deviceApi = {
   delete: (id: string) => api.delete(`/devices/${id}`),
   refresh: (id: string) => api.post<DeviceStatus>(`/devices/${id}/refresh`),
   reboot: (id: string) => api.post(`/devices/${id}/reboot`),
-  getConfig: (id: string) => api.get(`/devices/${id}/config`),
   setConfig: (id: string, config: any) => api.post(`/devices/${id}/config`, { config }),
 };
 

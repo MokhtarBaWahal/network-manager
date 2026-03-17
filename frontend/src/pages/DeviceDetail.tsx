@@ -10,7 +10,6 @@ export default function DeviceDetail() {
   const navigate = useNavigate();
   const [device, setDevice] = useState<Device | null>(null);
   const [status, setStatus] = useState<DeviceStatus | null>(null);
-  const [config, setConfig] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -35,9 +34,6 @@ export default function DeviceDetail() {
     try {
       const statusRes = await deviceApi.refresh(id!);
       setStatus(statusRes.data);
-
-      const configRes = await deviceApi.getConfig(id!);
-      setConfig(configRes.data);
 
       setLoading(false);
     } catch (err) {
@@ -199,21 +195,6 @@ export default function DeviceDetail() {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Configuration */}
-            {config && status && (
-              <div className={styles.card}>
-                <h2>Configuration</h2>
-                <div className={styles.config}>
-                  {Object.entries(config).map(([key, value]) => (
-                    <div key={key} className={styles.configRow}>
-                      <span className={styles.label}>{formatLabel(key)}</span>
-                      <span className={styles.value}>{JSON.stringify(value)}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             )}
