@@ -13,7 +13,7 @@
   font-size: 2rem;
   font-weight: 700;
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .testLink {
@@ -59,7 +59,7 @@
 .section {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   padding: 1.5rem;
 }
 
@@ -72,7 +72,8 @@
 
 .sectionHeader h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -131,6 +132,16 @@
 @media (max-width: 1024px) {
   .contentGrid {
     grid-template-columns: 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .header h1 {
+    font-size: 1.5rem;
   }
 
   .statsGrid {

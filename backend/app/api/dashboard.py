@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.core.database import get_db
-from app.models.device import Device, DeviceType, DeviceStatus, Alert
+from app.models.device import Device, DeviceType, DeviceStatus, DeviceMetrics, Alert
 from app.schemas.device import DashboardStats, DashboardResponse, DeviceResponse, AlertResponse
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
@@ -101,3 +101,27 @@ async def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
     db.commit()
     
     return {"success": True, "message": "Alert marked as resolved"}
+
+
+@router.get("/metrics/{device_id}")
+async def get_device_metrics_history(device_id: str, limit: int = 50, db: Session = Depends(get_db)):
+    """Get historical metric snapshots for a device"""
+    metrics = (
+        db.query(DeviceMetrics)
+        .filter(DeviceMetrics.device_id == device_id)
+        .order_by(DeviceMetrics.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "timestamp": m.timestamp,
+            "cpu_usage": m.cpu_usage,
+            "memory_usage": m.memory_usage,
+            "uptime": m.uptime,
+            "latency": m.latency,
+            "download_speed": m.download_speed,
+            "upload_speed": m.upload_speed,
+        }
+        for m in metrics
+    ]

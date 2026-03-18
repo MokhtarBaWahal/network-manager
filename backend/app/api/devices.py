@@ -5,6 +5,7 @@ Device Management API Endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from datetime import datetime
 import uuid
 
 from app.core.database import get_db
@@ -241,7 +242,17 @@ async def refresh_device_status(device_id: str, db: Session = Depends(get_db)):
         device.memory_usage = device_info.memory_usage
         device.uptime = device_info.uptime
         device.last_seen = device_info.last_updated
-        
+
+        # Store metric snapshot in history table
+        metric = DeviceMetrics(
+            device_id=device.id,
+            cpu_usage=device_info.cpu_usage,
+            memory_usage=device_info.memory_usage,
+            uptime=device_info.uptime,
+            timestamp=device_info.last_updated or datetime.utcnow(),
+        )
+        db.add(metric)
+
         db.commit()
         
         return {
@@ -254,3 +265,55 @@ async def refresh_device_status(device_id: str, db: Session = Depends(get_db)):
             "success": False,
             "message": f"Error: {str(e)}"
         }
+
+
+@router.get("/{device_id}/interfaces")
+async def get_device_interfaces(device_id: str, db: Session = Depends(get_db)):
+    """Get interface statistics for a device"""
+    device = db.query(Device).filter(Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    try:
+        driver = get_device_driver(device)
+        return await driver.get_interface_stats()
+    except Exception as e:
+        return {"interfaces": [], "error": str(e)}
+
+
+@router.get("/{device_id}/clients")
+async def get_device_clients(device_id: str, db: Session = Depends(get_db)):
+    """Get DHCP lease list (connected devices)"""
+    device = db.query(Device).filter(Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    try:
+        driver = get_device_driver(device)
+        return await driver.get_dhcp_leases()
+    except Exception as e:
+        return []
+
+
+@router.get("/{device_id}/hotspot")
+async def get_device_hotspot(device_id: str, db: Session = Depends(get_db)):
+    """Get active hotspot sessions"""
+    device = db.query(Device).filter(Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    try:
+        driver = get_device_driver(device)
+        return await driver.get_hotspot_active()
+    except Exception as e:
+        return []
+
+
+@router.get("/{device_id}/health")
+async def get_device_health(device_id: str, db: Session = Depends(get_db)):
+    """Get hardware health sensors (voltage, temperature, fans)"""
+    device = db.query(Device).filter(Device.id == device_id).first()
+    if not device:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    try:
+        driver = get_device_driver(device)
+        return await driver.get_health()
+    except Exception as e:
+        return {}

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Literal, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
 
@@ -86,6 +86,8 @@ class MikroTikCredential(CredentialBase):
     """For MikroTik: username/password auth"""
     username: str
     password: str
+    port: Optional[int] = None
+    api_type: Literal["binary", "rest", "auto"] = "auto"
 
 
 # Control Schemas

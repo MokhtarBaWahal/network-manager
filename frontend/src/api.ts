@@ -90,6 +90,10 @@ export const deviceApi = {
   refresh: (id: string) => api.post<DeviceStatus>(`/devices/${id}/refresh`),
   reboot: (id: string) => api.post(`/devices/${id}/reboot`),
   setConfig: (id: string, config: any) => api.post(`/devices/${id}/config`, { config }),
+  getInterfaces: (id: string) => api.get<any>(`/devices/${id}/interfaces`),
+  getClients: (id: string) => api.get<any[]>(`/devices/${id}/clients`),
+  getHotspot: (id: string) => api.get<any[]>(`/devices/${id}/hotspot`),
+  getHealth: (id: string) => api.get<Record<string, any>>(`/devices/${id}/health`),
 };
 
 // Dashboard APIs

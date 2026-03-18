@@ -17,8 +17,8 @@ pytz==2024.1
 # Starlink client library - using local path from project
 # To use: pip install -e ../../../starlink-client/libs/python/starlink-client
 
-# MikroTik API (optional - comment out if not available)
-# librouteros==0.1.6
+# MikroTik API - binary protocol for RouterOS v6, REST for v7+
+routeros-api==0.18.0
 
 # Async support
 aiohttp==3.9.3
