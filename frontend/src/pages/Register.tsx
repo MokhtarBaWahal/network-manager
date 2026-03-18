@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import styles from './Login.module.css';
 
+const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
 export default function Register() {
   const navigate = useNavigate();
   const { register, googleAuth } = useAuth();
@@ -62,20 +64,23 @@ export default function Register() {
 
         {error && <div className={styles.error}>{error}</div>}
 
-        <div className={styles.googleWrapper}>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => setError(t('auth.googleError'))}
-            theme="filled_black"
-            size="large"
-            width="100%"
-            shape="rectangular"
-          />
-        </div>
-
-        <div className={styles.divider}>
-          <span>{t('auth.orDivider')}</span>
-        </div>
+        {GOOGLE_ENABLED && (
+          <>
+            <div className={styles.googleWrapper}>
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError(t('auth.googleError'))}
+                theme="filled_black"
+                size="large"
+                width="100%"
+                shape="rectangular"
+              />
+            </div>
+            <div className={styles.divider}>
+              <span>{t('auth.orDivider')}</span>
+            </div>
+          </>
+        )}
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>
