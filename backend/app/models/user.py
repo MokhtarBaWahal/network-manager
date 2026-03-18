@@ -9,7 +9,8 @@ class User(Base):
 
     id = Column(String, primary_key=True)
     username = Column(String, unique=True, nullable=False, index=True)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)  # "!" for Google-only accounts
+    google_id = Column(String, unique=True, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     devices = relationship("Device", back_populates="owner", cascade="all, delete-orphan")

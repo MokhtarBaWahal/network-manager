@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { LanguageProvider } from './i18n/LanguageContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 import Layout from './components/Layout';
 import Loading from './components/Loading';
 import Dashboard from './pages/Dashboard';
@@ -23,6 +26,7 @@ function AuthLayout() {
 
 function App() {
   return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
     <LanguageProvider>
       <AuthProvider>
         <BrowserRouter>
@@ -41,6 +45,7 @@ function App() {
         </BrowserRouter>
       </AuthProvider>
     </LanguageProvider>
+    </GoogleOAuthProvider>
   );
 }
 

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+    GOOGLE_CLIENT_ID: str = ""  # Set via GOOGLE_CLIENT_ID env var
     
     # Device Refresh Intervals (seconds)
     STARLINK_REFRESH_INTERVAL: int = 30

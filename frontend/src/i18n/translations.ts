@@ -22,6 +22,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.registerError': 'Failed to create account',
     'auth.usernameTaken': 'Username is already taken',
     'auth.passwordMismatch': 'Passwords do not match',
+    'auth.orDivider': 'or',
+    'auth.googleError': 'Google sign-in failed. Please try again.',
 
     // Layout
     'app.name': 'Network Manager',
@@ -162,6 +164,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     'auth.registerError': 'فشل إنشاء الحساب',
     'auth.usernameTaken': 'اسم المستخدم مستخدم بالفعل',
     'auth.passwordMismatch': 'كلمتا المرور غير متطابقتين',
+    'auth.orDivider': 'أو',
+    'auth.googleError': 'فشل تسجيل الدخول بـ Google. حاول مرة أخرى.',
 
     'app.name': 'مدير الشبكة',
     'nav.dashboard': 'لوحة التحكم',

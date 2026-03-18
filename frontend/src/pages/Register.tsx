@@ -1,13 +1,14 @@
 import { useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Network, UserPlus } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../i18n/LanguageContext';
 import styles from './Login.module.css';
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, googleAuth } = useAuth();
   const { t } = useLanguage();
 
   const [username, setUsername] = useState('');
@@ -39,6 +40,16 @@ export default function Register() {
     }
   }
 
+  async function handleGoogleSuccess(credentialResponse: any) {
+    setError('');
+    try {
+      await googleAuth(credentialResponse.credential);
+      navigate('/', { replace: true });
+    } catch {
+      setError(t('auth.googleError'));
+    }
+  }
+
   return (
     <div className={styles.page}>
       <div className={styles.card}>
@@ -50,6 +61,21 @@ export default function Register() {
         <h1 className={styles.title}>{t('auth.registerTitle')}</h1>
 
         {error && <div className={styles.error}>{error}</div>}
+
+        <div className={styles.googleWrapper}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError(t('auth.googleError'))}
+            theme="filled_black"
+            size="large"
+            width="100%"
+            shape="rectangular"
+          />
+        </div>
+
+        <div className={styles.divider}>
+          <span>{t('auth.orDivider')}</span>
+        </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.formGroup}>

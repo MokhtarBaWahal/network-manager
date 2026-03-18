@@ -36,6 +36,13 @@ def _run_migrations():
             conn.commit()
             logger.info("Migration: added user_id column to devices table")
 
+        if insp.has_table("users"):
+            user_cols = [c["name"] for c in insp.get_columns("users")]
+            if "google_id" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN google_id TEXT"))
+                conn.commit()
+                logger.info("Migration: added google_id column to users table")
+
 
 _run_migrations()
 
