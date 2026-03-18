@@ -10,6 +10,7 @@ import uuid
 
 from app.core.database import get_db
 from app.models.device import Device, DeviceType, DeviceStatus, DeviceMetrics, DeviceCredentials
+from app.models.user import User
 from app.schemas.device import (
     DeviceCreate,
     DeviceResponse,
@@ -23,10 +24,11 @@ from app.schemas.device import (
 from app.modules.base import BaseDeviceDriver
 from app.modules.starlink import StarlinkDriver
 from app.modules.mikrotik import MikroTikDriver
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 
-# Device driver registry
+# Device driver registry (keyed by device.id — unique across all users)
 device_drivers = {}
 
 
@@ -35,10 +37,9 @@ def get_device_driver(device: Device) -> BaseDeviceDriver:
     if device.id not in device_drivers:
         credentials = {}
         if device.credentials and len(device.credentials) > 0:
-            # Get the first credential (typically only one per device)
             cred = device.credentials[0]
             credentials = cred.auth_data or {}
-        
+
         if device.device_type == DeviceType.STARLINK:
             device_drivers[device.id] = StarlinkDriver(
                 device.id, device.ip_address, credentials
@@ -47,53 +48,64 @@ def get_device_driver(device: Device) -> BaseDeviceDriver:
             device_drivers[device.id] = MikroTikDriver(
                 device.id, device.ip_address, credentials
             )
-    
+
     return device_drivers[device.id]
 
 
+def _get_user_device(device_id: str, user_id: str, db: Session) -> Device:
+    """Fetch a device that belongs to the current user, or raise 404."""
+    device = db.query(Device).filter(
+        Device.id == device_id,
+        Device.user_id == user_id,
+    ).first()
+    if not device:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+    return device
+
+
 @router.get("/", response_model=List[DeviceResponse])
-async def list_devices(db: Session = Depends(get_db)):
-    """List all devices"""
-    devices = db.query(Device).all()
-    return devices
+async def list_devices(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all devices for the current user"""
+    return db.query(Device).filter(Device.user_id == current_user.id).all()
 
 
 @router.get("/{device_id}", response_model=DeviceDetailResponse)
-async def get_device(device_id: str, db: Session = Depends(get_db)):
-    """Get device details with recent metrics"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
-    # TODO: Get recent metrics
-    recent_metrics = []
-    
-    return DeviceDetailResponse(
-        **device.__dict__,
-        recent_metrics=recent_metrics
-    )
+async def get_device(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get device details"""
+    device = _get_user_device(device_id, current_user.id, db)
+    return DeviceDetailResponse(**device.__dict__, recent_metrics=[])
 
 
 @router.post("/", response_model=DeviceResponse)
-async def create_device(device_data: DeviceCreate, db: Session = Depends(get_db)):
-    """Create a new device"""
-    # Clean IP address (remove protocol if present)
+async def create_device(
+    device_data: DeviceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create a new device for the current user"""
     ip_address = device_data.ip_address.strip()
     if ip_address.startswith("http://"):
         ip_address = ip_address[7:]
     elif ip_address.startswith("https://"):
         ip_address = ip_address[8:]
-    
-    # Check if device already exists
-    existing = db.query(Device).filter(Device.ip_address == ip_address).first()
+
+    existing = db.query(Device).filter(
+        Device.ip_address == ip_address,
+        Device.user_id == current_user.id,
+    ).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Device with this IP address already exists"
+            detail="Device with this IP address already exists",
         )
-    
-    # Create new device
+
     device = Device(
         id=str(uuid.uuid4()),
         name=device_data.name,
@@ -102,22 +114,21 @@ async def create_device(device_data: DeviceCreate, db: Session = Depends(get_db)
         location=device_data.location,
         description=device_data.description,
         status=DeviceStatus.UNKNOWN,
+        user_id=current_user.id,
     )
-    
-    # Store credentials if provided
+
     if device_data.credentials:
         cred = DeviceCredentials(
             id=str(uuid.uuid4()),
             device_id=device.id,
             auth_type="credentials" if device_data.device_type == DeviceType.MIKROTIK else "cookie",
-            auth_data=device_data.credentials
+            auth_data=device_data.credentials,
         )
         device.credentials.append(cred)
-    
+
     db.add(device)
     db.commit()
     db.refresh(device)
-    
     return device
 
 
@@ -125,115 +136,62 @@ async def create_device(device_data: DeviceCreate, db: Session = Depends(get_db)
 async def update_device(
     device_id: str,
     device_data: DeviceUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Update device information"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
-    update_data = device_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
+    device = _get_user_device(device_id, current_user.id, db)
+    for field, value in device_data.dict(exclude_unset=True).items():
         setattr(device, field, value)
-    
     db.commit()
     db.refresh(device)
-    
     return device
 
 
 @router.delete("/{device_id}")
-async def delete_device(device_id: str, db: Session = Depends(get_db)):
+async def delete_device(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Delete a device"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
-    # Remove driver from registry
+    device = _get_user_device(device_id, current_user.id, db)
     if device_id in device_drivers:
         del device_drivers[device_id]
-    
     db.delete(device)
     db.commit()
-    
     return {"message": "Device deleted successfully"}
 
 
 @router.post("/{device_id}/reboot", response_model=RebootResponse)
-async def reboot_device(device_id: str, db: Session = Depends(get_db)):
+async def reboot_device(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Reboot a device"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
+    device = _get_user_device(device_id, current_user.id, db)
     try:
         driver = get_device_driver(device)
         success = await driver.reboot()
-        
-        if success:
-            return RebootResponse(success=True, message=f"Device {device.name} is rebooting")
-        else:
-            return RebootResponse(success=False, message=f"Failed to reboot {device.name}")
+        msg = f"Device {device.name} is rebooting" if success else f"Failed to reboot {device.name}"
+        return RebootResponse(success=success, message=msg)
     except Exception as e:
         return RebootResponse(success=False, message=f"Error: {str(e)}")
 
 
-@router.post("/{device_id}/config", response_model=ConfigChangeResponse)
-async def change_device_config(
-    device_id: str,
-    config_request: ConfigChangeRequest,
-    db: Session = Depends(get_db)
-):
-    """Change device configuration"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
-    try:
-        driver = get_device_driver(device)
-        success = await driver.set_config(config_request.config)
-        
-        if success:
-            # Update device config in database
-            device.config = {**(device.config or {}), **config_request.config}
-            db.commit()
-            
-            return ConfigChangeResponse(
-                success=True,
-                message=f"Configuration applied to {device.name}",
-                applied_config=device.config
-            )
-        else:
-            return ConfigChangeResponse(
-                success=False,
-                message=f"Failed to apply configuration to {device.name}",
-                applied_config=device.config or {}
-            )
-    except Exception as e:
-        return ConfigChangeResponse(
-            success=False,
-            message=f"Error: {str(e)}",
-            applied_config=device.config or {}
-        )
-
-
 @router.post("/{device_id}/refresh")
-async def refresh_device_status(device_id: str, db: Session = Depends(get_db)):
+async def refresh_device_status(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Manually refresh device status"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
-    
+    device = _get_user_device(device_id, current_user.id, db)
     try:
         driver = get_device_driver(device)
         device_info = await driver.get_status()
-        
-        # Update device in database
+
         device.status = DeviceStatus(device_info.status)
         device.last_latency = device_info.latency
         device.last_download_speed = device_info.download_speed
@@ -243,77 +201,100 @@ async def refresh_device_status(device_id: str, db: Session = Depends(get_db)):
         device.uptime = device_info.uptime
         device.last_seen = device_info.last_updated
 
-        # Store metric snapshot in history table
-        metric = DeviceMetrics(
+        db.add(DeviceMetrics(
             device_id=device.id,
             cpu_usage=device_info.cpu_usage,
             memory_usage=device_info.memory_usage,
             uptime=device_info.uptime,
             timestamp=device_info.last_updated or datetime.utcnow(),
-        )
-        db.add(metric)
-
+        ))
         db.commit()
-        
+
         return {
             "success": True,
             "message": f"Device {device.name} status refreshed",
-            "device": DeviceResponse.model_validate(device)
+            "device": DeviceResponse.model_validate(device),
         }
     except Exception as e:
-        return {
-            "success": False,
-            "message": f"Error: {str(e)}"
-        }
+        return {"success": False, "message": f"Error: {str(e)}"}
+
+
+@router.post("/{device_id}/config", response_model=ConfigChangeResponse)
+async def change_device_config(
+    device_id: str,
+    config_request: ConfigChangeRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Change device configuration"""
+    device = _get_user_device(device_id, current_user.id, db)
+    try:
+        driver = get_device_driver(device)
+        success = await driver.set_config(config_request.config)
+        if success:
+            device.config = {**(device.config or {}), **config_request.config}
+            db.commit()
+            return ConfigChangeResponse(
+                success=True,
+                message=f"Configuration applied to {device.name}",
+                applied_config=device.config,
+            )
+        return ConfigChangeResponse(
+            success=False,
+            message=f"Failed to apply configuration to {device.name}",
+            applied_config=device.config or {},
+        )
+    except Exception as e:
+        return ConfigChangeResponse(success=False, message=f"Error: {str(e)}", applied_config={})
 
 
 @router.get("/{device_id}/interfaces")
-async def get_device_interfaces(device_id: str, db: Session = Depends(get_db)):
-    """Get interface statistics for a device"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+async def get_device_interfaces(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device = _get_user_device(device_id, current_user.id, db)
     try:
-        driver = get_device_driver(device)
-        return await driver.get_interface_stats()
+        return await get_device_driver(device).get_interface_stats()
     except Exception as e:
         return {"interfaces": [], "error": str(e)}
 
 
 @router.get("/{device_id}/clients")
-async def get_device_clients(device_id: str, db: Session = Depends(get_db)):
-    """Get DHCP lease list (connected devices)"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+async def get_device_clients(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device = _get_user_device(device_id, current_user.id, db)
     try:
-        driver = get_device_driver(device)
-        return await driver.get_dhcp_leases()
-    except Exception as e:
+        return await get_device_driver(device).get_dhcp_leases()
+    except Exception:
         return []
 
 
 @router.get("/{device_id}/hotspot")
-async def get_device_hotspot(device_id: str, db: Session = Depends(get_db)):
-    """Get active hotspot sessions"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+async def get_device_hotspot(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device = _get_user_device(device_id, current_user.id, db)
     try:
-        driver = get_device_driver(device)
-        return await driver.get_hotspot_active()
-    except Exception as e:
+        return await get_device_driver(device).get_hotspot_active()
+    except Exception:
         return []
 
 
 @router.get("/{device_id}/health")
-async def get_device_health(device_id: str, db: Session = Depends(get_db)):
-    """Get hardware health sensors (voltage, temperature, fans)"""
-    device = db.query(Device).filter(Device.id == device_id).first()
-    if not device:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device not found")
+async def get_device_health(
+    device_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    device = _get_user_device(device_id, current_user.id, db)
     try:
-        driver = get_device_driver(device)
-        return await driver.get_health()
-    except Exception as e:
+        return await get_device_driver(device).get_health()
+    except Exception:
         return {}

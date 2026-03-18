@@ -8,42 +8,42 @@ from sqlalchemy import func
 
 from app.core.database import get_db
 from app.models.device import Device, DeviceType, DeviceStatus, DeviceMetrics, Alert
+from app.models.user import User
 from app.schemas.device import DashboardStats, DashboardResponse, DeviceResponse, AlertResponse
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/stats", response_model=DashboardStats)
-async def get_dashboard_stats(db: Session = Depends(get_db)):
-    """Get dashboard statistics"""
-    
-    total_devices = db.query(func.count(Device.id)).scalar() or 0
-    online_devices = db.query(func.count(Device.id)).filter(
-        Device.status == DeviceStatus.ONLINE
-    ).scalar() or 0
-    offline_devices = db.query(func.count(Device.id)).filter(
-        Device.status == DeviceStatus.OFFLINE
-    ).scalar() or 0
-    error_devices = db.query(func.count(Device.id)).filter(
-        Device.status == DeviceStatus.ERROR
-    ).scalar() or 0
-    
-    starlink_count = db.query(func.count(Device.id)).filter(
-        Device.device_type == DeviceType.STARLINK
-    ).scalar() or 0
-    mikrotik_count = db.query(func.count(Device.id)).filter(
-        Device.device_type == DeviceType.MIKROTIK
-    ).scalar() or 0
-    
-    # Calculate average metrics
+async def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get dashboard statistics for the current user"""
+    def _count(extra_filter=None):
+        q = db.query(func.count(Device.id)).filter(Device.user_id == current_user.id)
+        if extra_filter is not None:
+            q = q.filter(extra_filter)
+        return q.scalar() or 0
+
+    total_devices = _count()
+    online_devices = _count(Device.status == DeviceStatus.ONLINE)
+    offline_devices = _count(Device.status == DeviceStatus.OFFLINE)
+    error_devices = _count(Device.status == DeviceStatus.ERROR)
+    starlink_count = _count(Device.device_type == DeviceType.STARLINK)
+    mikrotik_count = _count(Device.device_type == DeviceType.MIKROTIK)
+
     avg_latency = db.query(func.avg(Device.last_latency)).filter(
-        Device.last_latency.isnot(None)
+        Device.user_id == current_user.id,
+        Device.last_latency.isnot(None),
     ).scalar()
-    
+
     avg_download_speed = db.query(func.avg(Device.last_download_speed)).filter(
-        Device.last_download_speed.isnot(None)
+        Device.user_id == current_user.id,
+        Device.last_download_speed.isnot(None),
     ).scalar()
-    
+
     return DashboardStats(
         total_devices=total_devices,
         online_devices=online_devices,
@@ -57,22 +57,26 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=DashboardResponse)
-async def get_dashboard(db: Session = Depends(get_db)):
-    """Get full dashboard data"""
-    
-    # Get stats
-    stats_response = await get_dashboard_stats(db)
-    
-    # Get all devices
-    devices = db.query(Device).all()
+async def get_dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get full dashboard data for the current user"""
+    stats_response = await get_dashboard_stats(db, current_user)
+
+    devices = db.query(Device).filter(Device.user_id == current_user.id).all()
     devices_response = [DeviceResponse.model_validate(d) for d in devices]
-    
-    # Get recent alerts
-    recent_alerts = db.query(Alert).filter(
-        Alert.resolved == False
-    ).order_by(Alert.created_at.desc()).limit(10).all()
+
+    recent_alerts = (
+        db.query(Alert)
+        .join(Device, Alert.device_id == Device.id)
+        .filter(Device.user_id == current_user.id, Alert.resolved == False)
+        .order_by(Alert.created_at.desc())
+        .limit(10)
+        .all()
+    )
     alerts_response = [AlertResponse.model_validate(a) for a in recent_alerts]
-    
+
     return DashboardResponse(
         stats=stats_response,
         devices=devices_response,
@@ -81,31 +85,63 @@ async def get_dashboard(db: Session = Depends(get_db)):
 
 
 @router.get("/alerts")
-async def get_alerts(skip: int = 0, limit: int = 20, db: Session = Depends(get_db)):
-    """Get alerts"""
-    alerts = db.query(Alert).order_by(Alert.created_at.desc()).offset(skip).limit(limit).all()
+async def get_alerts(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get alerts for the current user's devices"""
+    alerts = (
+        db.query(Alert)
+        .join(Device, Alert.device_id == Device.id)
+        .filter(Device.user_id == current_user.id)
+        .order_by(Alert.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
     return [AlertResponse.model_validate(a) for a in alerts]
 
 
 @router.post("/alerts/{alert_id}/resolve")
-async def resolve_alert(alert_id: int, db: Session = Depends(get_db)):
+async def resolve_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Mark an alert as resolved"""
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    
+    alert = (
+        db.query(Alert)
+        .join(Device, Alert.device_id == Device.id)
+        .filter(Alert.id == alert_id, Device.user_id == current_user.id)
+        .first()
+    )
     if not alert:
         return {"success": False, "message": "Alert not found"}
-    
+
     from datetime import datetime
     alert.resolved = True
     alert.resolved_at = datetime.utcnow()
     db.commit()
-    
     return {"success": True, "message": "Alert marked as resolved"}
 
 
 @router.get("/metrics/{device_id}")
-async def get_device_metrics_history(device_id: str, limit: int = 50, db: Session = Depends(get_db)):
-    """Get historical metric snapshots for a device"""
+async def get_device_metrics_history(
+    device_id: str,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get historical metrics for a device"""
+    device = db.query(Device).filter(
+        Device.id == device_id,
+        Device.user_id == current_user.id,
+    ).first()
+    if not device:
+        return []
+
     metrics = (
         db.query(DeviceMetrics)
         .filter(DeviceMetrics.device_id == device_id)

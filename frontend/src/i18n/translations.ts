@@ -2,6 +2,27 @@ export type Lang = 'en' | 'ar';
 
 export const translations: Record<Lang, Record<string, string>> = {
   en: {
+    // Auth
+    'auth.loginTitle': 'Sign in to your account',
+    'auth.registerTitle': 'Create an account',
+    'auth.username': 'Username',
+    'auth.usernamePh': 'e.g. admin',
+    'auth.password': 'Password',
+    'auth.confirmPassword': 'Confirm Password',
+    'auth.loginBtn': 'Sign In',
+    'auth.signingIn': 'Signing in...',
+    'auth.registerBtn': 'Create Account',
+    'auth.registering': 'Creating account...',
+    'auth.logout': 'Logout',
+    'auth.noAccount': "Don't have an account?",
+    'auth.registerLink': 'Create one',
+    'auth.hasAccount': 'Already have an account?',
+    'auth.loginLink': 'Sign in',
+    'auth.loginError': 'Invalid username or password',
+    'auth.registerError': 'Failed to create account',
+    'auth.usernameTaken': 'Username is already taken',
+    'auth.passwordMismatch': 'Passwords do not match',
+
     // Layout
     'app.name': 'Network Manager',
     'nav.dashboard': 'Dashboard',
@@ -121,6 +142,27 @@ export const translations: Record<Lang, Record<string, string>> = {
   },
 
   ar: {
+    // Auth
+    'auth.loginTitle': 'تسجيل الدخول إلى حسابك',
+    'auth.registerTitle': 'إنشاء حساب جديد',
+    'auth.username': 'اسم المستخدم',
+    'auth.usernamePh': 'مثال: admin',
+    'auth.password': 'كلمة المرور',
+    'auth.confirmPassword': 'تأكيد كلمة المرور',
+    'auth.loginBtn': 'تسجيل الدخول',
+    'auth.signingIn': 'جارٍ الدخول...',
+    'auth.registerBtn': 'إنشاء الحساب',
+    'auth.registering': 'جارٍ إنشاء الحساب...',
+    'auth.logout': 'تسجيل الخروج',
+    'auth.noAccount': 'ليس لديك حساب؟',
+    'auth.registerLink': 'أنشئ حساباً',
+    'auth.hasAccount': 'لديك حساب بالفعل؟',
+    'auth.loginLink': 'تسجيل الدخول',
+    'auth.loginError': 'اسم المستخدم أو كلمة المرور غير صحيحة',
+    'auth.registerError': 'فشل إنشاء الحساب',
+    'auth.usernameTaken': 'اسم المستخدم مستخدم بالفعل',
+    'auth.passwordMismatch': 'كلمتا المرور غير متطابقتين',
+
     'app.name': 'مدير الشبكة',
     'nav.dashboard': 'لوحة التحكم',
     'nav.addDevice': 'إضافة جهاز',

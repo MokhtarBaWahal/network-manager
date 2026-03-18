@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Float, DateTime, Boolean, Enum, ForeignKey, JSON, Text
+from sqlalchemy import Column, String, Integer, Float, DateTime, Boolean, Enum, ForeignKey, JSON, Text, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -20,12 +20,19 @@ class DeviceStatus(str, enum.Enum):
 class Device(Base):
     """Device model for Starlink dishes and MikroTik routers"""
     __tablename__ = "devices"
-    
+    __table_args__ = (
+        UniqueConstraint("ip_address", "user_id", name="uq_device_ip_user"),
+    )
+
     id = Column(String, primary_key=True)
     name = Column(String, index=True)
     device_type = Column(Enum(DeviceType), index=True)
-    ip_address = Column(String, unique=True, index=True)
+    ip_address = Column(String, index=True)
     status = Column(Enum(DeviceStatus), default=DeviceStatus.UNKNOWN)
+
+    # Owner
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    owner = relationship("User", back_populates="devices")
     
     # Configuration
     location = Column(String, nullable=True)
@@ -48,6 +55,7 @@ class Device(Base):
     # Relationships
     credentials = relationship("DeviceCredentials", back_populates="device", cascade="all, delete-orphan")
     metrics = relationship("DeviceMetrics", back_populates="device", cascade="all, delete-orphan")
+    alerts = relationship("Alert", back_populates="device", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Device {self.name} ({self.device_type.value}) - {self.status.value}>"
@@ -105,9 +113,10 @@ class DeviceMetrics(Base):
 class Alert(Base):
     """Alerts for device issues"""
     __tablename__ = "alerts"
-    
+
     id = Column(Integer, primary_key=True)
     device_id = Column(String, ForeignKey("devices.id"))
+    device = relationship("Device", back_populates="alerts")
     
     severity = Column(String)  # "info", "warning", "error", "critical"
     message = Column(Text)

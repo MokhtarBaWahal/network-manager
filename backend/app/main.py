@@ -14,11 +14,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.database import Base, engine, SessionLocal
 from app.core.config import settings
 from app.api import devices, dashboard
+from app.api import auth as auth_api
 
 logger = logging.getLogger(__name__)
 
+# Import models so SQLAlchemy registers them before create_all
+from app.models import user  # noqa: F401 — registers User model
+
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+
+def _run_migrations():
+    """Add new columns to existing tables without dropping data (SQLite-compatible)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(engine)
+    with engine.connect() as conn:
+        device_cols = [c["name"] for c in insp.get_columns("devices")]
+        if "user_id" not in device_cols:
+            conn.execute(text("ALTER TABLE devices ADD COLUMN user_id TEXT REFERENCES users(id)"))
+            conn.commit()
+            logger.info("Migration: added user_id column to devices table")
+
+
+_run_migrations()
 
 # Track last known uptime per device to detect reboots
 _last_uptime: dict = {}
@@ -129,6 +148,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth_api.router)
 app.include_router(devices.router)
 app.include_router(dashboard.router)
 
