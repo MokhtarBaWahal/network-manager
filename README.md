@@ -47,4 +47,76 @@ network-manager/
 
 ## Getting Started
 
-See [backend/README.md](./backend/README.md) for setup instructions.
+### Prerequisites
+
+- Python 3.11+
+- Node.js 18+
+- Git
+
+---
+
+### Option 1: Run with Docker (Recommended)
+
+```bash
+docker-compose up --build
+```
+
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+
+---
+
+### Option 2: Run Locally
+
+#### Backend
+
+```bash
+cd backend
+
+# Create and activate virtual environment
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/Mac:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment
+cp .env.example .env
+
+# Start the backend
+uvicorn app.main:app --reload
+```
+
+Backend runs at http://localhost:8000
+API docs at http://localhost:8000/docs
+
+#### Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start the dev server
+npm run dev
+```
+
+Frontend runs at http://localhost:5173
+
+---
+
+### Environment Variables
+
+Copy `backend/.env.example` to `backend/.env` and configure:
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | `sqlite:///./network_manager.db` | Database connection string |
+| `SECRET_KEY` | *(change this!)* | JWT signing key |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `1440` | Token expiry in minutes |
+
+For more backend details, see [backend/README.md](./backend/README.md).
